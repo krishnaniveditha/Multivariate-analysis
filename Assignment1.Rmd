@@ -1,0 +1,49 @@
+
+Homework -1 
+Assignment
+Subject name - Multivariate analysis
+Full name - Krishna Niveditha Pallem
+
+Question - 1. Ask an important question you want answered (1 at least) 
+
+Answer: How much a user spends time on their devices using social media
+
+Question - 2. Answer why this question(s) is/are important to you.
+
+Answer: How much time a user spends on their devices using social media is important. 
+For several reasons, ranging from mental health implications to societal impact. 
+Understanding this metric can help in addressing and mitigating potential negatives. 
+outcomes while also recognizing the benefits of social media. Here are some reasons
+why this question is significant:
+  
+•	Mental Health and Well-being
+•	productivity Impact
+•	Social and Relationship Impact
+•	Digital Well-being
+•	Marketing and Business Insights
+•	Educational Insights
+•	Policy Making and Regulation
+
+Question - 3. Find and collect data (need one independent variable and more than 3 dependent variables).
+
+Answer:
+Dependent variables – In debt, Owns cars, house owner.
+Independent variable – Age and gender 
+
+Question - 4. Describe your data (create a data dictionary).
+
+Answer:
+The description for each column is as follows:
+  
+1.	Age: The age of the user.
+2.	gender: The gender identity of the user (Male, Female, Non-binary).
+3.	Demographics: The type of area the user resides in (Urban, Suburban, Rural).
+4.	Interests: The user's primary area of interest or hobby.
+5.	device type: The type of device used by the user (Mobile).
+6.	Location: The country of residence of the user.
+7.	Platform: The social media platform where the user spends time.
+8.	Profession: The user's occupation or professional status.
+9.	Income: The yearly income of the user.
+10.	In debt: Indicates whether the user is in debt (True or False).
+11.	homeowner: Indicates whether the user owns a home (True or False).
+12.	Owns cars: Indicates whether the user owns cars (True or False).
