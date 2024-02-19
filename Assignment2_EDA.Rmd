@@ -1,0 +1,227 @@
+#Title: "MVA_Visualization"
+#Author: "Krishna Niveditha Pallem"
+#NetID: kp1160@scarletmail.rutgers.edu
+#Date: "2/18/2023"
+#Output:
+#html_document: default
+#word_document: default
+#pdf_document: default
+
+```{r}
+library(readr)
+library(car) # for leveneTest
+library(stats) # for aov and mahalanobis
+
+# Load the dataset
+dummy_data <- read_csv("/Users/pallemkrishnaniveditha/Downloads/dummy_data.csv")
+str(dummy_data)
+
+# Assuming 'gender' and 'platform' are factors you might be interested in comparing across
+dummy_data$gender <- as.factor(dummy_data$gender)
+dummy_data$platform <- as.factor(dummy_data$platform)
+
+
+# Let's focus on numeric variables for some basic t-tests: 'age', 'time_spent', and 'income'
+# Example t-test: comparing 'income' between 'male' and 'female'
+t.test(income ~ gender, data = dummy_data, subset = gender %in% c("male", "female"))
+
+# You can perform similar t-tests for other numeric variables and between different groups
+
+# Checking variance equality (homoscedasticity) between groups for 'income'
+leveneTest(income ~ gender, data = dummy_data)
+
+# ANOVA for comparing means of a numeric variable across more than two groups
+# Example: 'time_spent' across different 'platforms'
+summary(aov(time_spent ~ platform, data = dummy_data))
+
+
+```
+
+```{r}
+#Question
+#The histogram shows that each bin covering a range of five years. To improve readability, the histogram's bins are filled in with a light blue color and have a black edge. The "Distribution of Ages" plot, which has suitably labeled axes, provides a thorough comprehension of the age distribution of the dataset's entries.
+
+# Assuming your dataframe is named df
+
+library(ggplot2)
+
+# Univariate Visualization: Distribution of Ages
+dos<-ggplot(dummy_data, aes(x=age)) + 
+  geom_histogram(binwidth = 5, fill="lightblue", color="black") + 
+  ggtitle("Distribution of Ages") + 
+  xlab("Age") + 
+  ylab("Frequency")
+plot(dos)
+
+
+```
+
+```{r}
+#Question
+#How can you create a bivariate visualization using the ggplot2 library in R to explore the relationship between age and income, with the additional dimension of gender? 
+
+#The visualization should include a scatter plot where points are color-coded by gender and a linear regression line to indicate trends in income as it relates to age. The plot is titled "Income by Age with Gender Highlight" and that the axes are labeled appropriately with "Age" for the x-axis and "Income" for the y-axis.
+
+# Assuming your dataframe is named df
+
+library(ggplot2)
+# Bivariate Visualization: Income by Age
+ioa<-ggplot(dummy_data, aes(x=age, y=income)) + 
+  geom_point(aes(color=gender)) +  # Color code points by gender
+  geom_smooth(method="lm", se=FALSE, color="black") +  # Add a linear regression line
+  ggtitle("Income by Age with Gender Highlight") + 
+  xlab("Age") + 
+  ylab("Income")
+plot(ioa)
+
+```
+```{r}
+#Question
+#How do you create a categorical visualization in R using the ggplot2 library to display the count of different professions? 
+#The visualization should be a bar chart with bars filled in cornflower blue, and the x-axis labels (representing professions) should be angled at 45 degrees for better readability. The plot is titled "Count of Professions" and that the axes are labeled with "Profession" for the x-axis and "Count" for the y-axis.
+
+library(ggplot2)
+#Univariate Visualization
+#Bar Chart of Professions: To visualize the count of individuals in each profession.
+poa<-ggplot(dummy_data, aes(x=profession)) + 
+  geom_bar(fill="cornflowerblue") + 
+  ggtitle("Count of Professions") + 
+  xlab("Profession") + 
+  ylab("Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+plot(poa)
+```
+
+``````{r}
+#Question
+#How can the income on various social media platforms can be analyzed and visualized using the R ggplot2 library ?
+#The income for each platform should be displayed as a boxplot, with the platforms' colors being assigned with different colors. The plot should also be named "Income Distribution by Platform," with "Platform" on the x-axis and "Income" on the y-axis.
+
+#Bivariate Visualizations
+#Bivariate visualizations explore the relationship between two variables.
+library(ggplot2)
+#Boxplot of Income by Platform: To compare the distribution of income across different social media platforms.
+poi<-ggplot(dummy_data, aes(x=platform, y=income)) + 
+  geom_boxplot(aes(fill=platform)) + 
+  ggtitle("Income Distribution by Platform") + 
+  xlab("Platform") + 
+  ylab("Income")
+
+plot(poi)
+
+```
+
+``````{r}
+
+#Multivariate Visualizations
+#Multivariate visualizations can help to understand the relationships among three or more variables.
+
+#Scatter Plot of Age vs. Income, Faceted by Home Ownership and Colored by Gender: This allows us to see if home ownership status interacts with the relationship between age, income, and gender.
+
+#Question
+
+#How can you create a multivariate visualization in R using the ggplot2 library to explore the relationship between age and income, considering the variables of gender and home ownership status ?
+
+#The visualization should be a scatter plot where points are color-coded by gender (with males in blue, females in pink, and non-binary individuals in green) and have a transparency set to improve visibility of overlapping points. Further, the plot should use faceting to separate the data into panels based on whether individuals are homeowners or not. Ensure the plot is appropriately titled "Age vs. Income by Gender and Home Ownership," and label the axes with "Age" for the x-axis and "Income" for the y-axis.
+
+library(ggplot2)
+aig<-ggplot(dummy_data, aes(x=age, y=income, color=gender)) + 
+  geom_point(alpha=0.6) + 
+  facet_wrap(~isHomeOwner) + 
+  ggtitle("Age vs. Income by Gender and Home Ownership") + 
+  xlab("Age") + 
+  ylab("Income") +
+  scale_color_manual(values=c("male"="blue", "female"="pink", "non-binary"="green"))
+plot(aig)
+
+```
+
+``````{r}
+#Multivariate Visualization
+
+#Bar Plot of Average Time Spent on Platform by Location, Grouped by Owns Car Status: This visualization can help in understanding how the average time spent on social media platforms differs by location and car ownership.
+
+#Question
+
+#How can you use R to aggregate data from a dataset named dummy_data to calculate the average time spent on a platform based on location and car ownership status, and then visualize these findings? 
+#Use the dplyr package for data manipulation to group the data by location and whether or not an individual owns a car, calculating the mean time spent on the platform. Then, create a bar chart using the ggplot2 library to display these averages, where each bar's color indicates car ownership status (with "TRUE" for car owners represented in light green and "FALSE" for non-car owners in maroon). The plot is titled "Average Time Spent on Platform by Location and Car Ownership," and label the axes with "Location" for the x-axis and "Average Time Spent" for the y-axis.
+
+library(ggplot2)
+library(dplyr)
+
+tpl<-dummy_data %>% 
+  group_by(location, Owns_Car) %>% 
+  summarise(avg_time_spent = mean(time_spent, na.rm = TRUE)) %>%
+  ggplot(aes(x=location, y=avg_time_spent, fill=Owns_Car)) + 
+  geom_bar(stat="identity", position="dodge") + 
+  ggtitle("Average Time Spent on Platform by Location and Car Ownership") + 
+  xlab("Location") + 
+  ylab("Average Time Spent") +
+  scale_fill_manual(values=c("TRUE"="lightgreen", "FALSE"="maroon"))
+  plot(tpl)
+```
+
+``````{r}
+# Assuming dummy_data has been appropriately cleaned for numeric variables
+library(corrplot)
+
+# Calculate correlation matrix
+cor_matrix <- cor(dummy_data[, c("age", "income", "time_spent")])
+
+# Use corrplot to visualize
+cro<-corrplot::corrplot(cor_matrix, method = "color", type = "upper", tl.col = "black")
+
+```
+
+``````{r}
+#Density Plot for Age, Colored by Home Ownership
+#Density plots are useful for comparing the distribution of a continuous variable (like age) across different groups (like home ownership status).
+
+#Question
+#How can you create a visualization in R using the ggplot2 library to compare the age distribution between individuals who own homes and those who do not ?
+
+#The visualization should be a density plot where the fill color distinguishes between home owners and non-home owners, with transparency set to 0.5 for better visibility of overlapping areas. Ensure the plot is titled "Age Distribution by Home Ownership Status" and that the axes are labeled with "Age" for the x-axis and "Density" for the y-axis.
+
+library(ggplot2)
+aho<-ggplot(dummy_data, aes(x=age, fill=isHomeOwner)) + 
+  geom_density(alpha=0.5) +  # Adjust transparency with alpha
+  ggtitle("Age Distribution by Home Ownership Status") + 
+  xlab("Age") + 
+  ylab("Density")
+plot(aho)
+```
+``````{r}
+#To demonstrate the use of cowplot for combining plots in R, let's create a scenario where we combine two of the visualizations we discussed earlier: a distribution of ages using a histogram and a scatter plot showing income by age. We'll then use cowplot to display these plots side by side for a comparative analysis.
+
+#Question
+#How can you use R to create and combine two different visualizations, one showing the distribution of ages and another depicting income by age with a gender highlight?
+
+#Utilize the ggplot2 library to construct both plots and then employ the cowplot package to arrange these plots side by side. The first plot should be a histogram of ages with a bin width of 5, and the second plot should be a scatter plot of income by age with points color-coded by gender and include a linear regression line. Title the first plot "Distribution of Ages" and the second plot "Income by Age with Gender Highlight," label the axes appropriately, and display the combined plot with labels "A" and "B" for each respective plot section.
+
+library(ggplot2)
+library(cowplot)
+
+#First, let's create the two plots:
+# Plot 1: Distribution of Ages
+p1 <- ggplot(dummy_data, aes(x=age)) + 
+  geom_histogram(binwidth = 5, fill="blue", color="black") + 
+  ggtitle("Distribution of Ages") + 
+  xlab("Age") + 
+  ylab("Frequency")
+
+# Plot 2: Income by Age
+p2 <- ggplot(dummy_data, aes(x=age, y=income)) + 
+  geom_point(aes(color=gender)) +  # Color code points by gender
+  geom_smooth(method="lm", se=FALSE, color="black") +  # Add a linear regression line
+  ggtitle("Income by Age with Gender Highlight") + 
+  xlab("Age") + 
+  ylab("Income")
+
+# Combine the plots side by side
+combined_plot <- cowplot::plot_grid(p1, p2, labels = c("A", "B"), ncol = 2)
+
+# Display the combined plot
+print(combined_plot)
+
+```
