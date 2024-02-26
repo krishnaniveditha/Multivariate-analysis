@@ -1,0 +1,204 @@
+---
+title: "MULTIVARIATE ANALYSIS -- Social media -- Mean & Variance Analysis"
+author: "Krishna Niveditha Pallem"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+library(readr)
+social_media <- read_csv("/Users/pallemkrishnaniveditha/Downloads/Social_media.csv")
+str(social_media)
+```
+
+
+```{r}
+social_media$time_spent <- as.numeric(social_media$time_spent)
+social_media$age <- as.numeric(social_media$age)
+social_media$income <- as.numeric(social_media$income)
+social_media$indebt_n <- as.numeric(social_media$indebt_n)
+social_media$Owns_car_n <- as.numeric(social_media$Owns_car_n)
+
+```
+
+
+```{r}
+x <- dist(scale(social_media[, c("time_spent", "age", "income", "indebt_n", "Owns_car_n")],
+                center = FALSE))
+as.dist(round(as.matrix(x), 2)[1:12, 1:12])
+```
+
+
+```{r}
+num_cols <- social_media[,  c("time_spent", "age", "income", "indebt_n", "Owns_car_n")]
+num_cols
+
+```
+
+
+```{r}
+# Selecting only the numeric columns for the Mahalanobis distance calculation
+num_cols <- social_media[, sapply(social_media, is.numeric)]
+
+# Calculate column means
+cm <- colMeans(num_cols)
+
+# Calculate the covariance matrix for the numeric columns
+S <- cov(num_cols)
+
+# View the data frame with the Mahalanobis distances
+head(social_media)
+
+```
+
+#### T- test - One by One
+
+```{r}
+with(data=social_media, t.test(age[isHomeOwner=="TRUE"],age[isHomeOwner=="FALSE"],var.equal=TRUE))
+```
+
+###### **Inference**:
+* It can be drawn from the two-sample t-test that the null hypothesis can be rejected, since the p-value is less than 0.05.
+
+
+```{r}
+with(data=social_media, t.test(time_spent[isHomeOwner=="TRUE"], time_spent[isHomeOwner=="TRUE"],var.equal=TRUE))
+```
+
+###### **Inference**:
+*It can be drawn from the two-sample t-test that the null hypothesis is failed to be rejected, since the p-value is greater than 0.05.
+
+
+```{r}
+with(data=social_media, t.test(income[isHomeOwner=="TRUE"], income[isHomeOwner=="FALSE"],var.equal=TRUE))
+```
+
+##### **Inference**:
+* Since the p-value is lesser than 0.05, it can be inferred to reject the null hypothesis.
+
+
+```{r}
+with(data=social_media, t.test(indebt_n[isHomeOwner=="TRUE"], indebt_n[isHomeOwner=="FALSE"],var.equal=TRUE))
+```
+
+##### **Inference**:
+* The p-value being lesser than 0.05 indicate that the null hypothesis can be rejected.
+
+```{r}
+attach(social_media)
+```
+
+```{r}
+
+# Comparing income between male and female participants
+t.test(social_media$income[social_media$gender == "male"], social_media$income[social_media$gender == "female"], alternative="less", var.equal = TRUE)
+
+```
+
+```{r}
+# Performing a t-test to compare income between male and female participants
+t_result <- t.test(income ~ gender, data = social_media, subset = gender %in% c("male", "female"), var.equal = TRUE)
+
+# Printing the results
+print(t_result)
+
+```
+
+```{r}
+# And you want to compare income between genders (male vs. female)
+
+t.test(
+  x = social_media$income[social_media$gender == "male"],
+  y = social_media$income[social_media$gender == "female"],
+  alternative = "two.sided", # Use "less" or "greater" for one-sided tests
+  var.equal = TRUE
+)
+
+```
+
+```{r}
+# Convert gender to a factor for clarity in the t-test output
+social_media$gender <- as.factor(social_media$gender)
+
+# Perform t-test to compare income between male and female
+t_test_result <- t.test(income ~ gender, data = social_media, subset = gender %in% c("male", "female"), var.equal = TRUE)
+
+# Print the t-test results
+print(t_test_result)
+
+```
+
+
+```{r}
+# Custom function to calculate mean absolute deviation (MAD)
+mad_custom <- function(x) {
+  mean(abs(x - mean(x, na.rm = TRUE)), na.rm = TRUE)
+}
+
+# Apply the custom MAD function to each numeric column in the dataframe
+mad_results <- sapply(social_media[, sapply(social_media, is.numeric)], mad_custom)
+
+# Print the results
+print(mad_results)
+
+```
+
+```{r}
+
+library(car)
+
+# Perform Levene's test for equality of variances of income across platforms
+leveneTest(income ~ platform, data = social_media)
+
+```
+
+#### ANOVA
+
+```{r}
+social_media <- data.frame(
+  age = c(56, 46, 32, 60, 25),
+  gender = c("male", "female", "male", "non-binary", "male"),
+  time_spent = c(3, 2, 8, 5, 1),
+  platform = c("Instagram", "Facebook", "Instagram", "Instagram", "Instagram"),
+  interests = c("Sports", "Travel", "Sports", "Travel", "Lifestyle"),
+  location = c("United Kingdom", "United Kingdom", "Australia", "United Kingdom", "Australia"),
+  demographics = c("Urban", "Urban", "Sub_Urban", "Urban", "Urban"),
+  profession = c("Software Engineer", "Student", "Marketer Manager", "Student", "Software Engineer"),
+  income = c(19774, 10564, 13258, 12500, 14566),
+  indebt_n = c(0, 1, 0, 0, 0),
+  isHomeOwner = c(FALSE, TRUE, FALSE, TRUE, TRUE),
+  Owns_car_n = c(0, 1, 0, 1, 1)
+)
+
+# Now let's perform ANOVA to see if there are significant differences in income across different platforms
+result <- aov(income ~ platform, data = social_media)
+
+# Display the results
+summary(result)
+
+```
+
+
+#### Mahalanabis
+
+
+```{r}
+library(biotools)
+```
+
+#### MANOVA
+
+```{r}
+social_media$indebt_n <- as.factor(social_media$indebt_n)  # Ensure categorical variables are factors
+social_media$Owns_car_n <- as.factor(social_media$Owns_car_n)
+social_media$platform <- as.factor(social_media$platform)  # Convert to factor if not already
+
+# Perform MANOVA
+manova_result <- manova(cbind(income, time_spent) ~ platform, data = social_media)
+
+# Summary of the MANOVA
+summary(manova_result, test = "Pillai")
+
+```
+
