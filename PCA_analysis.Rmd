@@ -1,0 +1,342 @@
+Title: "PCA analysis on social media data"
+Author: "kp1160@scarletmail.rutgers.edu"
+Date: "3/3/2023"
+
+```{r}
+library(readr)
+social_media <- read_csv("/Users/pallemkrishnaniveditha/Downloads/social_media.csv")
+str(social_media)
+attach(social_media)
+
+```
+
+```{r}
+# Converting categorical columns to numeric
+social_media$gender <- as.numeric(factor(social_media$gender))
+social_media$platform <- as.numeric(factor(social_media$platform))
+
+# Selecting only numeric columns
+numericCols <- social_media[, sapply(social_media, is.numeric)]
+
+# Performing PCA on numeric columns, scaling the data
+social_media_pca <- prcomp(numericCols, scale. = FALSE)
+
+# Display the PCA object
+print(social_media_pca)
+
+# Summary of PCA to see explained variance
+summary(social_media_pca)
+
+#INFERENCE
+
+#We have considered the numeric values and we have considered the columns containing numeric values and later performed PCA on the numeric values and have obtained PC1,PC2,PC3,PC4,PC5,PC6 and PC7. We got the Standard deviation, Proportion of Variance and Cumulative Proportion.
+
+```
+```{r}
+# Convert factors to numeric as needed
+social_media$gender <- as.numeric(factor(social_media$gender))
+social_media$platform <- as.numeric(factor(social_media$platform))
+social_media$location <- as.numeric(factor(social_media$location))
+social_media$demographics <- as.numeric(factor(social_media$demographics))
+social_media$profession <- as.numeric(factor(social_media$profession))
+social_media$interests <- as.numeric(factor(social_media$interests))
+social_media$isHomeOwner <- as.numeric(social_media$isHomeOwner) - 1 # Convert TRUE/FALSE to 1/0
+numericCols <- social_media[, sapply(social_media, is.numeric)]
+social_media_pca <- prcomp(numericCols, scale. = FALSE)
+# Display the PCA object
+print(social_media_pca)
+
+# Summary of PCA to see explained variance
+summary(social_media_pca)
+
+(eigen_values <- social_media_pca$sdev^2)
+names(eigen_values) <- paste("PC", 1:length(eigen_values), sep="")
+
+sum_lambdas <- sum(eigen_values)
+
+prop_var <- eigen_values / sum_lambdas
+
+cum_var <- cumsum(prop_var)
+
+mat_lambdas <- rbind(eigen_values, prop_var, cum_var)
+rownames(mat_lambdas) <- c("Eigenvalues", "Prop. variance", "Cum. prop. variance")
+
+# Display rounded lambda matrix
+round(mat_lambdas, 4)
+
+# Display summary and rotation matrix
+summary(social_media_pca)
+social_media_pca$rotation
+
+```
+```{r}
+#Step 1: Run PCA on the Numeric Columns
+#First, ensure you have converted categorical columns to numeric where appropriate and extracted the numeric columns for PCA. After running PCA, you obtain social_media_pca.
+
+#Step 2: Combine PCA Scores with a Categorical Variable
+
+# Assuming platform has been converted to numeric and you wish to analyze based on it
+# Let's convert it back to a factor for meaningful grouping
+
+social_media$platform <- factor(social_media$platform)
+
+# Combining the platform data with PCA scores
+platform_pca <- cbind(social_media$platform, social_media_pca$x)
+platform_pca_df <- data.frame(platform_pca)
+
+# Renaming the first column to Platform for clarity
+colnames(platform_pca_df)[1] <- "Platform"
+
+#Step 3: Calculate Means of Scores for All PCs Classified by Platform
+
+tabMeansPC <- aggregate(platform_pca_df[,2:ncol(platform_pca_df)], by=list(Platform=platform_pca_df$Platform), mean)
+
+# Order by Platform for clarity (optional, depending on your needs)
+tabMeansPC <- tabMeansPC[order(tabMeansPC$Platform),]
+
+# Transpose the means for better readability
+tabMeansTransposed <- t(tabMeansPC[,-1])
+
+# Rename columns to reflect the platforms
+colnames(tabMeansTransposed) <- as.vector(tabMeansPC$Platform)
+
+# Display the transposed table of means
+tabMeansTransposed
+
+```
+```{r}
+# Calculate standard deviations of scores for all the PCs classified by platform
+tabsdsPC <- aggregate(platform_pca_df[,2:ncol(platform_pca_df)], by=list(Platform=platform_pca_df$Platform), sd)
+
+# Transpose the standard deviations for better readability
+tabfsds <- t(tabsdsPC[,-1])
+
+# Rename columns to reflect the platforms
+colnames(tabfsds) <- as.vector(tabsdsPC$Platform)
+
+# Display the transposed table of standard deviations
+tabfsds
+# ANOVA for PC1 scores across different platforms
+anova_result_PC1 <- aov(PC1 ~ Platform, data=platform_pca_df)
+summary(anova_result_PC1)
+
+```
+
+```{r}
+## F ratio tests
+pca_scores <- as.data.frame(social_media_pca$x)
+
+# Add the grouping variable back to this data frame
+pca_scores_with_group <- cbind(social_media$gender, pca_scores)
+colnames(pca_scores_with_group)[1] <- "Gender"
+
+# Subset data to include only groups 1 and 2
+pca_scores_filtered <- pca_scores_with_group[pca_scores_with_group$Gender %in% c(1, 2), ]
+
+# Then perform the variance test
+var_test_result_PC1 <- var.test(PC1 ~ Gender, data = pca_scores_filtered)
+print(var_test_result_PC1)
+
+#Inference 
+#We have taken PC1 by gender, here using F test to compare two variances. The p value obtained is 0.9442 which is greater than 0.05, That means the null hypothesis should not be rejected.  
+
+```
+```{r}
+# Levene's tests (one-sided)
+# Install the car package if you haven't already
+if (!requireNamespace("car", quietly = TRUE)) {
+  install.packages("car")
+}
+
+# Load the car package for Levene's test
+library(car)
+# Levene's test for equality of variances in PC1 scores across gender groups
+(LTPC1 <- leveneTest(PC1 ~ gender, data = pca_scores_with_group))
+(p_PC1_1sided <- LTPC1$p.value / 2)  # If you're interested in a one-sided test
+
+
+
+```
+
+```{r}
+# Scatter plot for PC1 and PC2 scores, differentiating by gender
+plot(social_media_pca$x[,1], social_media_pca$x[,2], 
+     pch = ifelse(social_media$gender == 1, 1, 16), 
+     xlab = "PC1", ylab = "PC2", 
+     main = "PCA Scores for Social Media Data")
+abline(h = 0)
+abline(v = 0)
+legend("bottomleft", legend = c("Gender 1", "Gender 2"), pch = c(1, 16))
+
+# Scree plot
+plot(social_media_pca$sdev^2, xlab = "Component number", ylab = "Eigenvalue", type = "b", main = "Scree Plot")
+
+# Log of eigenvalues diagram
+plot(log(social_media_pca$sdev^2), xlab = "Component number", ylab = "Log(Eigenvalue)", type = "b", main = "Log(Eigenvalue) Diagram")
+
+print(summary(social_media_pca))
+
+# Direct plot of PCA object (biplot or scree plot depending on the PCA object)
+plot(social_media_pca)
+
+#Inference
+
+#We can see the graphstating the PCA scores for the social media data, where the gender 1 is male and gender 2 is female, it looks like the gender-2 is comparatively distributed more across all quadrants than the gender 1. 
+```
+
+
+```{r}
+# Better Ways to Visualize
+
+library(factoextra)
+library(FactoMineR)
+library(ggfortify)
+library(psych)
+library(corrplot)
+library(devtools)
+
+# For demonstration, let's assume 'gender' as a binary variable for coloring (adjust as needed)
+color_var <- ifelse(social_media$gender == "male", "blue", "red")
+
+# Visualize original data (adjust columns as necessary)
+pairs.panels(social_media[, c("time_spent", "income")], # select numeric columns as needed
+             gap = 0,
+             bg = color_var,
+             pch=21)
+
+# Visualize PCA results
+pairs.panels(social_media_pca$x,
+             gap=0,
+             bg = color_var,
+             pch=21)
+
+# If the 'factoextra' package is used for 'fviz_*' functions, ensure it's installed and loaded
+library(factoextra)
+
+# Eigenvalues plot
+fviz_eig(social_media_pca, addlabels = TRUE)
+
+# Variable correlation with PCA dimensions
+fviz_pca_var(social_media_pca, col.var = "cos2",
+             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
+             repel = TRUE)
+
+# Individual's projection
+fviz_pca_ind(social_media_pca, col.ind = "cos2", 
+             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"), 
+             repel = TRUE)
+
+# Biplot
+biplot(social_media_pca)
+
+# autoplot from 'ggfortify' for PCA results visualization
+# Ensure 'ggfortify' is installed and loaded for autoplot
+library(ggfortify)
+autoplot(social_media_pca,
+         data = social_media[, -1], # assuming the first column isn't part of PCA
+         loadings = TRUE,
+         labels = social_media$gender) # Adjust this based on your specific grouping variable
+
+
+```
+```{r}
+# Convert factors to numeric where applicable
+social_media$gender <- as.numeric(factor(social_media$gender))
+social_media$platform <- as.numeric(factor(social_media$platform))
+social_media$interests <- as.numeric(factor(social_media$interests))
+social_media$location <- as.numeric(factor(social_media$location))
+social_media$demographics <- as.numeric(factor(social_media$demographics))
+social_media$profession <- as.numeric(factor(social_media$profession))
+social_media$isHomeOwner <- as.numeric(social_media$isHomeOwner) # Assuming TRUE/FALSE values
+social_media$Owns_car_n <- as.numeric(social_media$Owns_car_n) # Assuming 0/1 values
+
+# Exclude non-numeric columns if not converted
+numeric_data <- social_media[, sapply(social_media, is.numeric)]
+
+# Load FactoMineR for PCA
+library(FactoMineR)
+
+# Run PCA
+res.pca <- PCA(numeric_data, graph = FALSE)
+
+# Print the results
+print(res.pca)
+
+```
+
+```{r}
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 50))
+
+var <- get_pca_var(res.pca)
+
+var
+
+# Coordinates
+head(var$coord)
+# Cos2: quality on the factore map
+head(var$cos2)
+# Contributions to the principal components
+head(var$contrib)
+```
+
+```{r}
+# Correlation circle
+fviz_pca_var(res.pca, col.var = "black")
+```
+
+```{r}
+# Quality of representation
+
+if(any(is.na(var$cos2) | is.nan(var$cos2))) {
+  print("There are NA or NaN values in var$cos2")
+}
+summary(var$cos2)
+
+```
+
+```{r}
+fviz_cos2(res.pca, choice = "var", axes = 1:2)
+fviz_pca_var(res.pca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE # Avoid text overlapping
+             )
+# Change the transparency by cos2 values
+fviz_pca_var(res.pca, alpha.var = "cos2")
+corrplot(var$contrib, is.corr=FALSE)
+# Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 10)
+# Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 10)
+fviz_pca_var(res.pca, col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
+             )
+fviz_pca_var(res.pca, alpha.var = "contrib")
+# Assuming social_media$gender is already a factor
+# If not, convert it to factor
+social_media$gender <- factor(social_media$gender)
+library(FactoMineR)
+res.pca <- PCA(numeric_data, graph = FALSE)
+library(factoextra)
+
+# Check if the length matches
+if(length(social_media$gender) == nrow(numeric_data)) {
+  fviz_pca_ind(res.pca,
+               geom.ind = "point", # show points only (not "text")
+               col.ind = social_media$gender, # color by groups, ensure it matches PCA data
+               palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+               addEllipses = TRUE, # Concentration ellipses
+               legend.title = "Gender"
+              )
+} else {
+  print("The length of the grouping variable does not match the PCA data.")
+}
+
+```
+
+
+
+```
+
