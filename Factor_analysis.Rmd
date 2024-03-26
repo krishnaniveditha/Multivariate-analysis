@@ -1,0 +1,58 @@
+---
+title: "Factor_Analysis"
+output: html_document
+date: "2023-03-25"
+
+#Name: Krishna Niveditha Pallem
+#NET ID: KP1160
+---
+
+```{r}
+#1. Decide how many Factors are ideal for your dataset. 
+social_media <- read.csv("/Users/pallemkrishnaniveditha/Downloads/Social_media.csv")
+
+# For simplicity, let's focus on numerical variables: age, time_spent, and income
+# You can also consider transforming categorical variables to numerical if needed
+analysis_data <- social_media[, c("age", "time_spent", "income")]
+library(psych)
+
+# Since you have 3 variables, the maximum number of factors you can extract is 3
+pca_result <- principal(analysis_data, nfactors=3, rotate="varimax")
+#2. Explain the output for your factor model.
+# Print PCA results and loadings
+print(pca_result)
+print(pca_result$loadings)
+#3. Showing the columns that go into each factor.
+# Perform parallel analysis to suggest the number of factors
+fa.parallel(analysis_data, fa="both")
+#4. Perform some visualizations using the factors.
+# Additional analyses based on PCA results
+print(round(pca_result$values, 3))
+fa.plot(pca_result)
+fa.diagram(pca_result)
+
+# Compute correlation matrix
+corrm_data <- cor(analysis_data)
+print(corrm_data)
+
+
+# Perform PCA for dimensionality reduction
+data_pca <- prcomp(analysis_data, scale=TRUE)
+print(summary(data_pca))
+
+# Calculating eigenvalues and explained variance
+eigen_values <- round(data_pca$sdev^2, 3)
+prop_var <- round(eigen_values / sum(eigen_values), 2)
+cum_var <- cumsum(prop_var)
+
+# Prepare matrix of eigenvalues and variance explained
+mat_eigenvalues <- rbind(eigen_values, prop_var, cum_var)
+rownames(mat_eigenvalues) <- c("Eigenvalues", "Proportional Variance", "Cumulative Proportional Variance")
+
+# Print the matrix
+print(mat_eigenvalues)
+
+
+```
+
+
