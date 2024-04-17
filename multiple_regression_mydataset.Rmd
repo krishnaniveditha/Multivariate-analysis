@@ -1,0 +1,119 @@
+---
+title: "kp1160_multiple_regression"
+author: "Krishna Niveditha"
+date: "2024-04-14"
+output: html_document
+---
+  
+### Loading libraries
+
+```{r}
+library(GGally)
+library(car)
+library(MASS)
+library(gvlma)
+library(leaps)
+library(relaimpo)
+
+```
+
+```{r}
+# Load the dataset
+media <- read.csv("/Users/pallemkrishnaniveditha/Downloads/Social_media.csv")
+
+str(media)
+
+head(media)  
+
+colnames(media)
+```
+
+  
+```{r}
+
+# Assuming 'media' is the name of your dataset
+# Replace 'dependent_variable' with the name of your dependent variable column
+
+# Perform multiple regression
+fit <- lm(age ~ ., data = media)
+
+# Summarize the regression results
+summary(fit)
+
+
+```
+
+```{r}
+coefficients(fit)
+confint(fit, level = 0.95)
+fitted(fit)
+residuals(fit)
+anova(fit)
+vcov(fit)
+cov2cor(vcov(fit))
+
+```
+### Residuals
+
+#### The minimum residual is -0.79424, and the maximum residual is 0.73103.
+#### The median residual is close to zero (0.00899), which is a good sign, indicating that the model's predictions are centered around the actual values.
+#### The first quartile (1Q) and third quartile (3Q) of the residuals are -0.21874 and 0.20255, respectively, suggesting a relatively symmetric distribution of residuals.
+
+### Fit
+#### The adjusted R-squared value is 0.8627, which adjusts the R-squared for the number of predictors in the model. It provides a more conservative estimate of the model's explanatory power.
+
+#### The F-statistic is 188.3 with 5 and 144 degrees of freedom, and the associated p-value is < 2.2e-16. This suggests that the overall model is statistically significant and fits the data well
+
+#### The p-values indicate the statistical significance of each coefficient. In this case, all coefficients are statistically significant at the 0.05 level, so the model is performing good.
+#### The overall model is statistically significant (p-value < 2.2e-16), indicating a good fit to the data.
+
+```{r}
+
+avPlots(fit)
+plot(fit, which = 4)
+influencePlot(fit, id.method = "identify", main = "Influence Plot", sub = "Circle size is proportional to Cook's Distance")
+
+
+```
+### To analyze the residuals, we'll create diagnostic plots to check for linearity, homoscedasticity, and normality assumptions.
+
+```{r}
+qqPlot(fit, main = "QQ Plot")
+sresid <- studres(fit)
+hist(sresid, freq = FALSE, main = "Distribution of Studentized Residuals")
+
+```
+
+```{r}
+ncvTest(fit)
+spreadLevelPlot(fit)
+
+```
+### The plot() function creates four diagnostic plots for the regression model.
+
+#### The first plot (Residuals vs. Fitted) checks for linearity and homoscedasticity. The residuals should be randomly scattered around the horizontal line at 0, without any clear patterns.
+#### The second plot (Normal Q-Q) checks for normality of residuals. 
+#### The third plot (Scale-Location) checks for homoscedasticity. 
+#### The fourth plot (Residuals vs. Leverage) identifies influential observations that have a large impact on the model.
+
+
+```{r}
+
+durbinWatsonTest(fit)
+
+```
+### Interpreting the Influence Plot:
+#### Observations in the top-right quadrant (high leverage and large positive standardized residuals) and bottom-right quadrant (high leverage and large negative standardized residuals) are considered influential.
+#### Observations in the top-left and bottom-left quadrants (low leverage and large standardized residuals) are not influential but may be outliers.
+### MSE
+#### The MSE value of 0.0903765672131653 represents the average squared difference between the predicted values and the actual values.
+#### It measures the average squared deviation of the predictions from the true values.
+#### A lower MSE indicates better model performance, as it suggests that the predictions are closer to the actual values on average.
+
+### RMSE
+#### The RMSE value of 0.300626956897024 is the square root of the MSE.
+#### It provides a measure of the average magnitude of the errors in the same units as the target variable.
+#### The RMSE is more interpretable than the MSE because it is on the same scale as the target variable.
+#### In this case, an RMSE of 0.300626956897024 means that, on average, the model's predictions deviate from the actual values by approximately 0.3 units (assuming the target variable is on the same scale).
+
+
