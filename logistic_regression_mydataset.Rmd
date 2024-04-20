@@ -1,0 +1,155 @@
+---
+title: "Logistic_Regression"
+author: "kp1160@scarletmail.rutgers.edu"
+date: "2023-04-19"
+output: html_document
+---
+  
+```{r}
+library(ggplot2)
+library(cowplot)
+library(caret)
+library(e1071)
+library(pROC)
+
+```
+
+
+```{r}
+media <- read.csv("/Users/pallemkrishnaniveditha/Downloads/Social_media.csv")
+ 
+
+colnames(media) <- c("age","gender","time_spent", "platform","interests", "location","demographics","profession", "income","indebt_n", "isHomeOwner","Owns_car_n")
+
+
+str(media)
+
+head(media) 
+```
+
+```{r}
+media[media == "?"] <- NA
+media$gender <- as.factor(media$gender)
+media$platform <- as.factor(media$platform)
+media$interests <- as.factor(media$interests)
+media$location <- as.factor(media$location)
+media$demographics <- as.factor(media$demographics)
+media$profession <- as.factor(media$profession)
+
+media$ca <- as.integer(media$time_spent)
+media$ca <- as.factor(media$time_spent)
+media$thal <- as.integer(media$income)
+media$thal <- as.factor(media$income)
+```
+
+
+
+```{r}
+xtabs(~ Owns_car_n + gender, data = media)
+xtabs(~ Owns_car_n + time_spent, data = media)
+xtabs(~ Owns_car_n + platform, data = media)
+xtabs(~ Owns_car_n + interests, data = media)
+xtabs(~ Owns_car_n + location, data = media)
+xtabs(~ Owns_car_n + demographics, data = media)
+xtabs(~ Owns_car_n + profession, data = media)
+xtabs(~ Owns_car_n + income, data = media)
+
+logistic_simple <- glm(Owns_car_n ~ gender, data = media, family = "binomial")
+summary(logistic_simple)
+
+```
+
+```{r}
+## sexM is the log(odds ratio) that tells us that if a sample has sex=M, the
+## odds of being unhealthy are, on a log scale, 1.27 times greater than if
+## a sample has sex=F.
+female.log.odds <- log(25 / 71)
+female.log.odds
+
+male.log.odds.ratio <- log((112 / 89) / (25/71))
+male.log.odds.ratio
+```
+
+```{r}
+## Lastly, let's  see what this logistic regression predicts, given
+## that a patient is either female or male (and no other data about them).
+predicted.data <- data.frame(probability.of.Owns_car_n=logistic_simple$fitted.values,gender=media$gender)
+predicted.data
+```
+
+```{r}
+xtabs(~ probability.of.Owns_car_n + gender, data=predicted.data)
+
+logistic <- glm( Owns_car_n ~ ., data=media, family="binomial")
+summary(logistic)
+```
+
+```{r}
+## Now calculate the overall "Pseudo R-squared" and its p-value
+ll.null <- logistic$null.deviance/-2
+ll.proposed <- logistic$deviance/-2
+(ll.null - ll.proposed) / ll.null
+```
+
+```{r}
+pdata <- predict(logistic,newdata=media,type="response" )
+pdata
+media$Owns_car_n
+pdataF <- as.factor(ifelse(test=as.numeric(pdata>0.5) == 0, yes="TRUE", no="FALSE"))
+
+
+```
+
+```{r}
+
+
+# From pROC
+roc(media$Owns_car_n,logistic$fitted.values,plot=TRUE)
+par(pty = "s")
+roc(media$Owns_car_n,logistic$fitted.values,plot=TRUE)
+```
+
+```{r}
+## NOTE: By default, roc() uses specificity on the x-axis and the values range
+## from 1 to 0. This makes the graph look like what we would expect, but the
+## x-axis itself might induce a headache. To use 1-specificity (i.e. the
+## False Positive Rate) on the x-axis, set "legacy.axes" to TRUE.
+roc(media$Owns_car_n,logistic$fitted.values,plot=TRUE, legacy.axes=TRUE)
+roc(media$Owns_car_n,logistic$fitted.values,plot=TRUE, legacy.axes=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage")
+
+roc(media$Owns_car_n,logistic$fitted.values,plot=TRUE, legacy.axes=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4)
+roc(media$Owns_car_n,logistic$fitted.values,plot=TRUE, legacy.axes=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4)
+```
+
+```{r}
+## If we want to find out the optimal threshold we can store the
+## data used to make the ROC graph in a variable...
+roc.info <- roc(media$Owns_car_n, logistic$fitted.values, legacy.axes=TRUE)
+str(roc.info)
+## tpp = true positive percentage
+## fpp = false positive precentage
+roc.df <- data.frame(tpp=roc.info$sensitivities*100, fpp=(1 - roc.info$specificities)*100,thresholds=roc.info$thresholds)
+roc.df
+head(roc.df) 
+## head() will show us the values for the upper right-hand corner of the ROC graph, when the threshold is so low
+## (negative infinity) that every single sample is called "obese".
+## Thus TPP = 100% and FPP = 100%
+tail(roc.df)
+```
+
+```{r}
+## tail() will show us the values for the lower left-hand corner
+## of the ROC graph, when the threshold is so high (infinity)
+## Thus, TPP = 0% and FPP = 0%
+## now let's look at the thresholds between TPP 60% and 80%
+roc.df[roc.df$tpp > 60 & roc.df$tpp < 80,]
+roc(media$Owns_car_n,logistic$fitted.values,plot=TRUE, legacy.axes=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, percent=TRUE)
+roc(media$Owns_car_n,logistic$fitted.values,plot=TRUE, legacy.axes=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, percent=TRUE, print.auc=TRUE)
+roc(media$Owns_car_n,logistic$fitted.values,plot=TRUE, legacy.axes=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, percent=TRUE, print.auc=TRUE, partial.auc=c(100, 90), auc.polygon = TRUE, auc.polygon.col = "#377eb822", print.auc.x=45)
+# Lets do two roc plots to understand which model is better
+roc(media$Owns_car_n, logistic_simple$fitted.values, plot=TRUE, legacy.axes=TRUE, percent=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, print.auc=TRUE)
+# Lets add the other graph
+plot.roc(media$Owns_car_n, logistic$fitted.values, percent=TRUE, col="#4daf4a", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=40)
+legend("bottomright", legend=c("Simple", "Non Simple"), col=c("#377eb8", "#4daf4a"), lwd=4) 
+```
+
