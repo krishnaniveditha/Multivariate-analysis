@@ -1,0 +1,148 @@
+---
+title: "LDA"
+author: "kp1160@scarletmail.rutgers.edu"
+output: html_document
+---
+
+```{r}
+
+library(ggplot2)
+library(memisc)
+library(ROCR)
+library(dplyr)
+library(klaR)
+```
+
+###Loading dataset
+```{r}
+social <- read.csv("/Users/pallemkrishnaniveditha/Downloads/Social_media.csv", header=FALSE)
+#features <- c("age", "gender", "time_spent", "platform", "interests", "location", "demographics", "profession", "income", "indebt_n", "isHomeOwner", "Owns_car_n")
+head(social)
+dim(social)
+str(social)
+```
+
+```{r}
+
+social_data <- as.matrix(social[, -which(names(social) %in% c("id"))]) # Assuming 'id' or similar non-predictive column
+# Load necessary library
+# Check the structure and unique values of the 'gender' column
+print(head(social$gender))
+print(table(social$gender))
+# Convert 'gender' to factor and check levels
+gender_factor <- factor(social$gender)
+print(levels(gender_factor))  # Print the factor levels to confirm
+
+# Convert factor to numeric and check the result
+gender_numeric <- as.numeric(gender_factor)
+print(head(gender_numeric))  # Print the first few numeric values
+# Reassign the numeric conversion back to the 'gender' column in your dataframe
+# Display unique values and their frequency
+print(table(social$gender))
+# Convert 'gender' to a factor
+gender_factor <- factor(social$gender)
+print(levels(gender_factor))  # Check levels to confirm
+# Convert factor to numeric
+gender_numeric <- as.numeric(gender_factor)
+print(head(gender_numeric))  # Verify the first few numbers to ensure conversion
+
+print(head(social$gender))  # Check to ensure the column has been updated properly
+
+library(MASS)
+
+# Split the data into training and testing sets
+set.seed(123)  # For reproducibility
+smp_size <- floor(0.75 * nrow(social))
+train_ind <- sample(nrow(social), size = smp_size)
+train.df <- social[train_ind, ]
+test.df <- social[-train_ind, ]
+
+
+```
+
+
+```{r}
+# Iris LDA
+data("iris")
+iris
+head(iris, 3)
+str(iris)
+r <- lda(formula = Species ~ ., data = iris)
+r
+summary(r)
+print(r)
+r$counts
+r$means
+r$scaling
+r$prior
+r$lev
+r$svd
+#singular values (svd) that gives the ratio of the between- and within-group standard deviations on the linear discriminant variables.
+r$N
+r$call
+(prop = r$svd^2/sum(r$svd^2))
+#we can use the singular values to compute the amount of the between-group variance that is explained by each linear discriminant. In our example we see that the first linear discriminant explains more than 99% of the between-group variance in the iris dataset.
+r2 <- lda(formula = Species ~ ., data = iris, CV = TRUE)
+r2
+head(r2$class)
+#the Maximum a Posteriori Probability (MAP) classification (a factor)
+#posterior: posterior probabilities for the classes.
+head(r2$posterior, 3)
+train <- sample(1:150, 75)
+r3 <- lda(Species ~ ., # training model
+          iris,
+          prior = c(1,1,1)/3,
+          subset = train)
+plda = predict(object = r3, # predictions
+               newdata = iris[-train, ])
+head(plda$class)
+head(plda$posterior, 6) # posterior prob.
+head(plda$x, 3)
+plot(r)
+plot(r3)
+r <- lda(Species ~ .,
+         iris,
+         prior = c(1,1,1)/3)
+prop.lda = r$svd^2/sum(r$svd^2)
+plda <- predict(object = r,
+                newdata = iris)
+dataset = data.frame(species = iris[,"Species"],lda = plda$x)
+ggplot(dataset) + geom_point(aes(lda.LD1, lda.LD2, colour = species, shape = species), size = 2.5) + labs(x = paste("LD1 (", percent(prop.lda[1]), ")", sep=""),y = paste("LD2 (", percent(prop.lda[2]), ")", sep=""))
+
+
+# lets play with accuracy
+# lets look at another way to divide a dataset
+
+set.seed(101) # Nothing is random!!
+sample_n(iris,10)
+# Lets take a sample of 75/25 like before. Dplyr preserves class. 
+training_sample <- sample(c(TRUE, FALSE), nrow(iris), replace = T, prob = c(0.75,0.25))
+train <- iris[training_sample, ]
+test <- iris[!training_sample, ]
+#lets run LDA like before
+lda.iris <- lda(Species ~ ., train)
+# do a quick plot to understand how good the model is
+plot(lda.iris, col = as.integer(train$Species))
+# Sometime bell curves are better
+plot(lda.iris, dimen = 1, type = "b")
+# THis plot shows the essense of LDA. It puts everything on a line and finds cutoffs. 
+# Partition plots
+partimat(Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width, data=train, method="lda")
+
+# Lets focus on accuracy. Table function
+lda.train <- predict(lda.iris)
+train$lda <- lda.train$class
+table(train$lda,train$Species)
+# running accuracy on the training set shows how good the model is. It is not an indication of "true" accuracy. We will use the test set to approximate accuracy
+lda.test <- predict(lda.iris,test)
+test$lda <- lda.test$class
+table(test$lda,test$Species)
+
+
+# Wilk's Lambda and F test for each variablw
+m <- manova(cbind(Sepal.Length,Sepal.Width,Petal.Length,Petal.Width)~Species,data=iris)
+summary(m,test="Wilks")
+summary(m,test="Pillai")
+summary.aov(m)
+```
+
