@@ -1,0 +1,406 @@
+---
+title: "Heart Disease Dataset"
+author: "Krishna Niveditha Pallem"
+date: "04/28/2024"
+output: html_document
+---
+  
+#### Loading the Dataset
+  
+```{r}
+library(readr)
+library(HSAUR2)
+library(SciViews)
+library(scatterplot3d)
+library(car)
+library(lattice)
+library(GGally)
+library(ggplot2)
+library(ggridges)
+library(ggvis)
+library(ggthemes)
+library(cowplot)
+library(gapminder)
+library(gganimate)
+library(dplyr)
+library(tidyverse)
+library(grid)
+library(gridExtra)
+library(RColorBrewer)
+library(Hotelling)
+library(stats)
+library(biotools)
+library(factoextra)
+library(FactoMineR)
+library(ggfortify)
+library(psych)
+library(corrplot)
+library(devtools)
+library(cluster)
+library(magrittr)
+library(NbClust)
+library(MASS)
+library(leaps)
+
+
+```
+
+```{r}
+heart <- read.csv("/Users/pallemkrishnaniveditha/Downloads/heart_statlog.csv")
+attach(heart)
+```
+
+```{r}
+str(heart)
+```
+**Inference:**
+* This dataset comprises various medical attributes aimed at studying heart disease risk factors. It includes age, sex, types of chest pain, resting blood pressure, cholesterol levels, fasting blood sugar, results of resting electrocardiograms, maximum heart rate, presence of exercise-induced angina, ST depression during exercise, and the slope of exercise ST segment. 
+* Each of these factors is used to understand their correlation with the presence or absence of heart disease, indicated by the "Target" column, where "1" suggests the presence and "0" the absence of heart disease.
+
+```{r}
+stars(heart)
+```
+
+```{r}
+# Standardizing the data with scale()
+matstd.data <- scale(heart)
+
+# Creating a (Euclidean) distance matrix of the standardized data                     
+dist.data <- dist(matstd.data, method="euclidean")
+colnames(dist.data) <- rownames(dist.data)
+dist.data
+```
+
+### **Cluster Analysis**
+
+###### Clustering organizes data points into groups, or "clusters," based on their similarities. It helps us see patterns and similarities within the data, making it easier to understand and analyze.
+
+* We first must define the ideal number of clusters to divide the data into. We can check using a couple of tests.
+
+
+### Optimal Clusters
+```{r}
+matstd_heart <- scale(heart)
+
+fviz_nbclust(matstd_heart, kmeans, method = "gap_stat")
+```
+
+**Inference:**
+* By performing gap statistic analysis, we determine the optimal number of clusters.
+* Based on the Screeplot , we are considering 2 clusters.
+
+#### **Hierarchical Clustering**
+
+**Dendogram - - To visualize the different possible clusters**
+
+```{r}
+res.hc <- heart %>% scale() %>% dist(method = "euclidean") %>%
+  hclust(method = "ward.D2")
+fviz_dend(res.hc, k = 2, cex = 0.5, 
+          k_colors = c("#2E9FDF", "#00AFBB", "#E7B800", "#FC4E07"),
+          color_labels_by_k = TRUE, rect = TRUE)
+```
+
+**Inference:**
+
+* Clustering also aligns with our findings of the PCA.
+* The dendrogram divides the countries into clusters based on their similarity in terms of the variables included in the analysis. Each branch of the dendrogram represents a cluster, and the height at which branches merge indicates the level of dissimilarity between clusters.
+* By examining the countries within each cluster, we can infer patterns or commonalities among them.Countries that do not cluster tightly with others may be considered outliers.
+
+**Membership of all Clusters**
+
+```{r}
+matstd_heart <- scale(heart)
+set.seed(123)
+kmeans2_heart <- kmeans(matstd_heart, centers = 2, nstart = 25)
+kmeans2_heart
+```
+
+
+```{r}
+
+
+km.res <- kmeans(matstd_heart, 2, nstart = 25)
+# Visualize
+fviz_cluster(km.res, data = matstd_heart,
+             ellipse.type = "convex",
+             palette = "jco",
+             ggtheme = theme_minimal(),
+             repel = TRUE)
+
+```
+
+**Inference:**
+
+The application of hierarchical clustering and k-means clustering helped identify natural groupings within the data, indicating distinct patterns or profiles associated with the risk of heart disease. These clusters could represent different patient profiles based on their risk levels, guiding personalized medicine or targeted health interventions.
+
+### **Principal Component Analysis**
+
+```{r}
+heart1 <- cor(heart)
+
+heart1_pca <- prcomp(heart1,scale=TRUE)
+
+summary(heart1_pca)
+```
+
+**Inference:**
+
+* This is the summary of the Principal Components. We can use the Scree Plot in order to get the ideal number of Principal Components.
+* The analysis of principal components reveals that the first two components (PC1 and PC2) are the most important, explaining a significant portion of the variance in the dataset (around 59.3%). PC1 captures the most variability, followed by PC2, indicating that these components are essential for understanding the underlying structure and patterns in the data.
+
+**Scree Plot**
+
+**To further understand the ideal number of PCs, we can carry out the Scree Plot**
+
+```{r}
+#Eigenvalues represent the amount of variance explained by each principal component
+#protein_pca$sdev contains the standard deviations of the principal components, and ^2 squares these values to obtain the eigenvalues. The results are stored in a variable named eigen_protein.
+
+(eigen_heart1 <- heart1_pca$sdev^2)
+names(eigen_heart1) <- paste("PC",1:9,sep="")
+
+plot(eigen_heart1, xlab = "Component number", ylab = "Component variance", type = "l", main = "Scree diagram")
+
+```
+
+```{r}
+fviz_eig(heart1_pca, addlabels = TRUE)
+```
+
+**Inference:**
+
+* Based on the Scree Plot, we can infer that **2 is the ideal number of Principal Components'** to use for our case.
+* 2 Principal Components have a variance of **59.3%**
+
+**Bi-Plot**
+
+```{r}
+#Generates a PCA variable plot where the variables are colored based on their quality of representation on the principal components
+
+fviz_pca_var(heart1_pca,col.var = "cos2",
+             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
+             repel = TRUE)
+```
+
+**Inference:**
+
+* The distance between points in a biplot reflect the generalized distance between them. The closer they are to each other (the smaller the angle between them), the stronger correlation they have.
+
+**Individual PCA**
+
+```{r}
+#PCA is conducted and results are stored in res.pca
+res.pca <- PCA(heart, graph = FALSE)
+#Individuals (samples or observations) in the PCA space are visualized using fviz_pca_ind()
+fviz_pca_ind(res.pca)
+```
+
+### PCA - Biplot
+
+```{r}
+fviz_pca_biplot(res.pca, repel = TRUE,
+                col.var = "#FC4E07", # Variables color
+                )
+```
+
+**Inference:**
+
+* PCA highlighted that the first two principal components explain about 59.3% of the variance, indicating that these factors majorly capture the underlying structure of the data. This suggests that a significant amount of information about heart disease can be captured by examining a reduced number of dimensions, which primarily include age, cholesterol levels, blood pressure, and other related cardiovascular metrics.
+
+### **Factor Analysis**
+
+```{r}
+fa.parallel(heart)
+```
+
+**Inference:**
+
+* According to the Parallel Analysis Scree Plots, **2 as the ideal number of Factors** (based on the FA Actual Data) for the data.
+
+
+**Factor Model**
+
+```{r}
+fit.pc <- principal(heart, nfactors=2, rotate="varimax")
+
+round(fit.pc$values, 3)
+fit.pc$loadings
+```
+
+**Inference:**
+
+* The loadings give the correlation, and leave out the values that may be way below a threshold making it unimportant.
+
+
+```{r}
+fit.pc$communality
+```
+
+**Inference:**
+
+* The column with the lowest communality scores can be referenced to be the least contributing.
+
+**Visualizing the Columns that go into each Factor**
+```{r}
+fa.diagram(fit.pc)
+```
+
+**Inference:**
+
+* Factor analysis reinforced the findings from PCA, suggesting that two main factors capture the majority of the information needed to understand variations in heart disease risk among individuals. These factors likely represent underlying biological or demographic variables influencing heart disease.
+
+**Multiple Regression**
+
+```{r}
+# Load mtcars dataset
+head(heart)
+names(heart)
+# Fitting the model
+fit <- lm(max.heart.rate ~ age + sex + cholesterol + resting.bp.s, data = heart)
+
+# Summary of the model to view results
+summary(fit)
+
+```
+
+```{r}
+coefficients(fit)
+library(GGally)
+ggpairs(data=heart, title="Heart_disease")
+confint(fit,level=0.95)
+fitted(fit)
+#showing error in each of the prediction
+residuals(fit)
+
+```
+
+```{r}
+#Anova Table
+anova(fit)
+vcov(fit)
+cov2cor(vcov(fit))
+```
+
+
+```{r}
+temp <- influence.measures(fit)
+temp
+plot(fit)
+```
+
+```{r}
+# Assessing Outliers
+library(car)
+outlierTest(fit)
+leveragePlots(fit) # leverage plots
+# Influential Observations
+# added variable plots
+avPlots(fit)
+# Cook's D plot
+# identify D values > 4/(n-k-1)
+cutoff <- 4/((nrow(heart)-length(fit$coefficients)-2))
+plot(fit, which=4, cook.levels=cutoff)
+# Influence Plot
+influencePlot(fit, id.method="identify", main="Influence Plot", sub="Circle size is proportial to Cook's Distance" )
+# Normality of Residuals
+# qq plot for studentized resid
+qqPlot(fit, main="QQ Plot")
+
+```
+
+```{r}
+# distribution of studentized residuals
+library(MASS)
+sresid <- studres(fit)
+hist(sresid, freq=FALSE,
+     main="Distribution of Studentized Residuals")
+xfit<-seq(min(sresid),max(sresid),length=40)
+yfit<-dnorm(xfit)
+lines(xfit, yfit)
+#Non-constant Error Variance
+# Evaluate homoscedasticity
+# non-constant error variance test
+ncvTest(fit)
+# plot studentized residuals vs. fitted values
+spreadLevelPlot(fit)
+#Multi-collinearity
+# Evaluate Collinearity
+vif(fit) # variance inflation factors
+sqrt(vif(fit)) > 2 # problem?
+#Nonlinearity
+# component + residual plot
+crPlots(fit)
+#Non-independence of Errors
+# Test for Autocorrelated Errors
+durbinWatsonTest(fit)
+```
+
+**Logistic Regression**
+```{r}
+names(heart)
+model <- glm(target ~ age + sex + chest.pain.type + resting.bp.s + cholesterol + fasting.blood.sugar + max.heart.rate + exercise.angina + oldpeak + ST.slope, family = binomial(), data = heart)
+
+# Summary of the model to see results
+summary(model)
+
+```
+
+```{r}
+# Diagnostic plots
+par(mfrow = c(2, 2))
+plot(model)
+
+```
+
+```{r}
+# Predicting probabilities
+predicted_probabilities <- predict(model, type = "response")
+
+# Converting probabilities to binary outcome based on a 0.5 cutoff
+predicted_classes <- ifelse(predicted_probabilities > 0.5, 1, 0)
+
+# Creating a confusion matrix to see the accuracy
+table(Predicted = predicted_classes, Actual = heart$target)
+
+```
+
+**Inference:**
+
+* Regression analyses were pivotal in quantifying the relationships between various predictors (like age, cholesterol, and blood pressure) and the outcome of heart disease. Logistic regression, in particular, was useful for modeling the probability of disease presence as a function of risk factors, providing a statistical framework for prediction and risk assessment.
+
+**Linear Discriminant Analysis **
+
+```{r}
+
+library(MASS)
+
+heart$target <- factor(heart$target)
+
+# Apply LDA
+heart_lda <- lda(target ~ age + sex + chest.pain.type + resting.bp.s + cholesterol + 
+                 fasting.blood.sugar + resting.ecg + max.heart.rate + exercise.angina + 
+                 oldpeak + ST.slope, data = heart)
+
+# Summary of the LDA model
+summary(heart_lda)
+
+# Plotting the LDA model
+plot(heart_lda)
+
+# Optionally, predicting and evaluating the model
+heart_predictions <- predict(heart_lda)
+table(predicted = heart_predictions$class, actual = heart$target)
+
+```
+
+**Inference:**
+
+* LDA provided a method for classifying individuals into groups (disease vs. no disease) based on predictors. This technique helped in visualizing the separability of individuals with and without heart disease, enhancing understanding of the predictive power of the measured attributes.
+
+
+**Conclusion:**
+
+* The analysis emphasizes the importance of several key risk factors, including age, sex, blood pressure, cholesterol, and specific symptoms like chest pain type and exercise-induced angina. These findings can inform public health policies and patient education programs focusing on these risk factors.
+
+* In summary, this dataset analysis not only provides insights into the epidemiological factors of heart disease but also showcases how various statistical and machine learning techniques can be effectively used to uncover patterns, predict outcomes, and potentially guide clinical decisions. This kind of multidimensional analysis is crucial in advancing healthcare towards more personalized and preemptive strategies.
