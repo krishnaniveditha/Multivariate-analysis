@@ -1,0 +1,370 @@
+---
+title: "Social Media Dataset"
+author: "Krishna Niveditha Pallem"
+date: "04/28/2024"
+output: html_document
+---
+  
+#### Loading the Dataset
+  
+```{r}
+library(readr)
+library(HSAUR2)
+library(SciViews)
+library(scatterplot3d)
+library(car)
+library(lattice)
+library(GGally)
+library(ggplot2)
+library(ggridges)
+library(ggvis)
+library(ggthemes)
+library(cowplot)
+library(gapminder)
+library(gganimate)
+library(dplyr)
+library(tidyverse)
+library(grid)
+library(gridExtra)
+library(RColorBrewer)
+library(Hotelling)
+library(stats)
+library(biotools)
+library(factoextra)
+library(FactoMineR)
+library(ggfortify)
+library(psych)
+library(corrplot)
+library(devtools)
+library(cluster)
+library(magrittr)
+library(NbClust)
+library(MASS)
+library(leaps)
+
+```
+
+```{r}
+media <- read.csv("/Users/pallemkrishnaniveditha/Downloads/Socialmediacleaned.csv")
+attach( media )
+```
+
+```{r}
+str(media)
+```
+
+```{r}
+stars(media)
+```
+
+```{r}
+names(media)
+# Standardizing the data with scale()
+matstd.data <- scale(Instagram_Hours)
+
+# Creating a (Euclidean) distance matrix of the standardized data                     
+dist.data <- dist(matstd.data, method="euclidean")
+colnames(dist.data) <- rownames(dist.data)
+dist.data
+```
+### **Cluster Analysis**
+
+###### Clustering organizes data points into groups, or "clusters," based on their similarities. It helps us see patterns and similarities within the data, making it easier to understand and analyze.
+
+* We first must define the ideal number of clusters to divide the data into. We can check using a couple of tests.
+
+
+### Optimal Clusters
+
+```{r}
+matstd_media <- scale(LinkedIn_Hours)
+
+fviz_nbclust(matstd_media, kmeans, method = "gap_stat")
+```
+
+**Inference:**
+* By performing gap statistic analysis, we determine the optimal number of clusters.
+* Based on the Screeplot , we are considering 2 clusters.
+
+#### **Hierarchical Clustering**
+```{r}
+library(dplyr)
+library(tidyr)
+library(cluster)
+names(media)
+# Convert categorical variables to factor
+media$Application.type <- as.factor(media$Application.type.Social.media..OTT..Learning.)
+media$Mood_Productivity <- as.factor(media$Mood_Productivity)
+media$Tired.waking.up.in.morning <- as.factor(media$Tired.waking.up.in.morning)
+media$Trouble.falling.asleep <- as.factor(media$Trouble.falling.asleep)
+media$How.you.felt.the.entire.week. <- as.factor(media$How.you.felt.the.entire.week.)
+
+# Drop ID column if not needed for clustering
+
+media <- dplyr::select(media, -id)
+
+
+```
+
+
+**Inference:**
+
+* Clustering also aligns with our findings of the PCA.
+* The dendrogram divides the countries into clusters based on their similarity in terms of the variables included in the analysis. Each branch of the dendrogram represents a cluster, and the height at which branches merge indicates the level of dissimilarity between clusters.
+* By examining the countries within each cluster, we can infer patterns or commonalities among them.Countries that do not cluster tightly with others may be considered outliers.
+
+**Membership of all Clusters**
+
+```{r}
+# Scale numeric columns
+numeric_cols <- sapply(media, is.numeric)
+media_numeric_scaled <- scale(media[, numeric_cols])
+# Create dummy variables for categorical features
+media_categorical <- media[, !numeric_cols]
+media_dummy <- data.frame(model.matrix(~.-1, data = media_categorical))
+# Combine scaled numeric data and dummy variables
+media_final <- cbind(media_numeric_scaled, media_dummy)
+
+# Compute Euclidean distance
+dist_matrix <- dist(media_final, method = "euclidean")
+
+# Hierarchical clustering using Ward's method
+hc <- hclust(dist_matrix, method = "ward.D2")
+plot(hc, main = "Hierarchical Clustering Dendrogram", xlab = "Index", ylab = "Height")
+clusters <- cutree(hc, k = 5) # Change k according to how many clusters you want
+
+# Append cluster membership to original data
+media$cluster <- as.factor(clusters)
+
+```
+
+**Inference**
+*The dataset was grouped into clusters based on features like hours spent on different social media platforms and subjective measures of mood and productivity. This can help understand patterns in data related to usage habits and their effects.
+*The optimal number of clusters was determined using the gap statistic, which can inform targeted strategies for different user groups.
+
+### **Principal Component Analysis**
+
+```{r}
+# Load necessary library
+library(dplyr)
+
+# Assuming 'media' dataframe is already loaded
+# Select only numeric columns (edit based on your dataframe structure)
+media_numeric <- media %>%
+  select_if(is.numeric)
+
+# Check for NA values and decide how to handle them
+sum(is.na(media_numeric))  # Sum of NA values
+media_numeric <- na.omit(media_numeric)  # Remove rows with NA values
+# Performing PCA, ensuring data is scaled and centered
+pca_result <- prcomp(media_numeric, scale. = TRUE, center = TRUE)
+# Print summary of PCA results
+summary(pca_result)
+
+```
+** Visualize PCA Results **
+
+```{r}
+# Load necessary library for plotting
+library(ggplot2)
+
+# Scree plot
+scree_plot <- data.frame(Var = 1:length(pca_result$sdev), SD = pca_result$sdev^2)
+ggplot(scree_plot, aes(x = Var, y = SD)) +
+  geom_line() + geom_point() +
+  theme_minimal() +
+  labs(title = "Scree Plot", x = "Principal Component", y = "Variance Explained")
+
+```
+
+** Bi- PLot **
+
+```{r}
+# Biplot of the first two principal components
+biplot(pca_result)
+
+```
+
+### **Factor Analysis**
+
+```{r}
+# Load necessary libraries
+library(dplyr)
+
+# Assuming 'media' dataframe is already loaded and contains non-numeric columns
+# Select only numeric columns
+media_numeric <- select_if(media, is.numeric)
+
+# Check for NA values and decide how to handle them
+sum(is.na(media_numeric))  # Sum of NA values
+media_numeric <- na.omit(media_numeric)  # Remove rows with NA values
+# Use psych package for parallel analysis which can help determine the number of factors
+library(psych)
+fa.parallel(media_numeric, fa = "both", main = "Scree Plot with Parallel Analysis")
+
+```
+
+** Perform Factor analysis **
+
+```{r}
+# Assuming you decide on 3 factors based on scree plot/parallel analysis
+fa_result <- factanal(media_numeric, factors = 3, scores = "regression", rotation = "varimax")
+print(fa_result)
+
+```
+
+```{r}
+# Using psych package to provide more detailed output
+fa_result_psych <- fa(media_numeric, nfactors = 3, rotate = "varimax")
+print(fa_result_psych)
+
+```
+
+**Inference**
+
+* PCA reduced the dimensionality of the dataset, identifying the principal components that explain most of the variance. This is crucial for simplifying complex datasets with many variables, helping to highlight the most significant features.
+* The scree plot provided insights into how many principal components to retain for further analysis, enhancing efficiency in data processing and interpretation.
+
+** Factor loadings **
+
+```{r}
+# Factor loadings from factanal
+print(fa_result$loadings)
+
+# Factor loadings from fa in psych
+print(fa_result_psych$loadings)
+
+```
+
+```{r}
+# Using fa.plot from the psych package
+fa.plot(fa_result_psych)
+
+```
+
+**Inference**
+
+* Factor analysis identified latent variables that describe correlations among observed variables. This can uncover underlying factors that might influence media usage and its impacts, such as underlying psychological traits or behavioral tendencies.
+* The parallel analysis helped decide the number of factors to retain, which is useful for accurate data representation.
+
+**Multiple Regression**
+
+```{r}
+
+# Load dplyr explicitly and check for conflicts
+library(dplyr)
+
+# List the functions that might be masked
+conflicts(detail = TRUE)
+# Display column names
+print(colnames(media))
+
+# Ensure categorical variables are factors
+media$Tired.waking.up.in.morning <- as.factor(media$Tired.waking.up.in.morning)
+media$Trouble.falling.asleep <- as.factor(media$Trouble.falling.asleep)
+media$Mood_Productivity <- as.factor(media$Mood_Productivity)
+
+# Replace 'How you felt the entire week?' with a numeric version if it's not already
+media$How.you.felt.the.entire.week. <- as.numeric(as.factor(media$How.you.felt.the.entire.week.))
+
+# Check and handle missing values
+media <- na.omit(media)  # This removes rows with any NA values
+
+
+```
+
+```{r}
+names(media)
+# Fit the model
+model <- lm(How.you.felt.the.entire.week. ~ Instagram_Hours + LinkedIn_Hours + Twitter_Hours, data = media)
+# Summarize the model
+summary(model)
+
+```
+
+```{r}
+# Diagnostic plots
+par(mfrow = c(2, 2))
+plot(model)
+
+```
+
+** Logistic regression **
+
+```{r}
+# Load necessary libraries
+library(dplyr)
+
+logit_model <- glm(Tired.waking.up.in.morning ~ Instagram_Hours + LinkedIn_Hours + Twitter_Hours, data = media, family = binomial)
+
+# Summary of the model to view coefficients and statistics
+summary(logit_model)
+
+```
+
+
+```{r}
+
+library(broom)
+
+# Get a tidy summary of the model
+tidy(logit_model)
+
+# Check for multicollinearity
+library(car)
+vif(logit_model)  # Variance Inflation Factor should ideally be below 5
+
+# Model diagnostics plots
+par(mfrow = c(2, 2))
+plot(logit_model)
+
+```
+
+```{r}
+# Predict probabilities
+predicted_probs <- predict(logit_model, type = "response")
+
+# Convert probabilities to binary outcome based on a 0.5 threshold
+predicted_class <- ifelse(predicted_probs > 0.5, "Yes", "No")
+
+# Confusion Matrix to evaluate model
+table(Predicted = predicted_class, Actual = media$Tired.waking.up.in.morning)
+
+# Calculate accuracy
+mean(predicted_class == media$Tired.waking.up.in.morning)
+
+```
+
+**Inference**
+
+* Logistic regression was used to predict binary outcomes such as whether a person felt tired waking up in the morning based on their social media usage. The model provided estimates of how each predictor variable (e.g., hours on Instagram, LinkedIn, Twitter) influences the likelihood of feeling tired.
+* The analysis included model diagnostics to check for multicollinearity and model fit, ensuring reliable results.
+**Linear Discriminant Analysis **
+
+```{r}
+library(MASS)
+
+media$Tired.waking.up.in.morning <- factor(media$Tired.waking.up.in.morning)
+
+# Apply LDA
+media_lda <- lda(Tired.waking.up.in.morning ~ Instagram_Hours + LinkedIn_Hours + Twitter_Hours + 
+                 Whatsapp_Wechat_hours + Reddit_hours + Youtube_hours + OTT_hours + 
+                 Mood_Productivity + Trouble.falling.asleep, data = media)
+
+# Summary of the LDA model
+summary(media_lda)
+
+# Plotting the LDA model
+plot(media_lda)
+
+# Optionally, predicting and evaluating the model
+media_predictions <- predict(media_lda)
+table(predicted = media_predictions$class, actual = media$Tired.waking.up.in.morning)
+```
+**Inference**
+
+* LDA was used for classifying individuals into groups based on their responses and social media usage. It offered another perspective on how different variables contribute to distinguishing between different classes, such as varying levels of tiredness upon waking.
+* Predictions from LDA were evaluated against actual data to assess model accuracy and practical applicability.
+
+**Conclusion**
+Overall, the analysis approaches utilized offer comprehensive insights into the dataset, demonstrating robust methods to understand and leverage data effectively for decision-making and strategy formulation in social media usage and its implications on user behavior and wellbeing.
