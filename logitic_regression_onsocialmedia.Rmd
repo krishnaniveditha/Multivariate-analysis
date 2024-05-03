@@ -1,0 +1,97 @@
+---
+title: "Social media dataset"
+author: "Krishna Niveditha Pallem"
+output: html_document
+---
+  
+#### Loading the Dataset
+```{r}
+library(readr)
+library(HSAUR2)
+library(SciViews)
+library(scatterplot3d)
+library(car)
+library(lattice)
+library(GGally)
+library(ggplot2)
+library(ggridges)
+library(ggvis)
+library(ggthemes)
+library(cowplot)
+library(gapminder)
+library(gganimate)
+library(dplyr)
+library(tidyverse)
+library(grid)
+library(gridExtra)
+library(RColorBrewer)
+library(Hotelling)
+library(stats)
+library(biotools)
+library(factoextra)
+library(FactoMineR)
+library(ggfortify)
+library(psych)
+library(corrplot)
+library(devtools)
+library(cluster)
+library(magrittr)
+library(NbClust)
+library(MASS)
+library(leaps)
+```
+
+```{r}
+media <- read.csv("/Users/pallemkrishnaniveditha/Downloads/Socialmediacleaned.csv")
+attach( media )
+```
+
+  
+  ** Logistic regression **
+
+```{r}
+# Load necessary libraries
+library(dplyr)
+table(media$Tired.waking.up.in.morning)
+media$Tired.waking.up.in.morning <- ifelse(media$Tired.waking.up.in.morning == "Yes", 1, 0)
+media$Tired.waking.up.in.morning <- factor(media$Tired.waking.up.in.morning, levels = c(0, 1))
+logit_model <- glm(Tired.waking.up.in.morning ~ Instagram_Hours + LinkedIn_Hours + Twitter_Hours, 
+                   data = media, family = binomial)
+
+# Summary of the model to view coefficients and statistics
+summary(logit_model)
+```
+
+```{r}
+library(broom)
+
+# Get a tidy summary of the model
+tidy(logit_model)
+
+# Check for multicollinearity
+library(car)
+vif(logit_model)  # Variance Inflation Factor should ideally be below 5
+
+# Model diagnostics plots
+par(mfrow = c(2, 2))
+plot(logit_model)
+```
+
+```{r}
+# Predict probabilities
+predicted_probs <- predict(logit_model, type = "response")
+
+# Convert probabilities to binary outcome based on a 0.5 threshold
+predicted_class <- ifelse(predicted_probs > 0.5, "Yes", "No")
+
+# Confusion Matrix to evaluate model
+table(Predicted = predicted_class, Actual = media$Tired.waking.up.in.morning)
+
+# Calculate accuracy
+mean(predicted_class == media$Tired.waking.up.in.morning)
+```
+
+**Inference**
+
+* Logistic regression was used to predict binary outcomes such as whether a person felt tired waking up in the morning based on their social media usage. The model provided estimates of how each predictor variable (e.g., hours on Instagram, LinkedIn, Twitter) influences the likelihood of feeling tired.
+* The analysis included model diagnostics to check for multicollinearity and model fit, ensuring reliable results.
